@@ -1,4 +1,5 @@
 #include <Arduino.h> 
+#include <vector>
 #include <PS4Controller.h>
 
 #define STOP 0
@@ -11,63 +12,80 @@
 #define REAR_LEFT_MOTOR 3
 
 struct motor_pins {
-  int pin_en;
+  // int pin_en;
   int pin_in1;
   int pin_in2;
 };
 
 std::vector<motor_pins> motor_pins_list = {
-  { 5, 17, 16 },   // front right
-  { 13, 14, 27 },  // front left
-  { 15, 4, 2 },    // rear right
-  { 33, 26, 25 },  // rear left
+  { 17, 16 },  // front right
+  { 14, 27 },  // front left
+  { 4, 2 },    // rear right
+  { 26, 25 },  // rear left
 };
+
+void rotate_motor(int motor_number, int motor_speed) {
+  int pwm = abs(motor_speed);
+  if (motor_speed < 0) {
+    // backward
+    analogWrite(motor_pins_list[motor_number].pin_in1, 0);
+    analogWrite(motor_pins_list[motor_number].pin_in2, pwm);
+  } else if (motor_speed > 0) {
+    // forward
+    analogWrite(motor_pins_list[motor_number].pin_in1, pwm);
+    analogWrite(motor_pins_list[motor_number].pin_in2, 0);
+  } else {
+    // stop
+    analogWrite(motor_pins_list[motor_number].pin_in1, 0);
+    analogWrite(motor_pins_list[motor_number].pin_in2, 0);
+  }
+}
 
 void process_car_movement(int input_value, int speed) {
   switch (input_value) {
-    case 1: // forward
+    case 1:  // forward
       rotate_motor(FRONT_RIGHT_MOTOR, speed);
       rotate_motor(FRONT_LEFT_MOTOR, speed);
       rotate_motor(REAR_RIGHT_MOTOR, speed);
       rotate_motor(REAR_LEFT_MOTOR, speed);
       break;
 
-    case 2: // backward
+    case 2:  // backward
       rotate_motor(FRONT_RIGHT_MOTOR, -speed);
       rotate_motor(FRONT_LEFT_MOTOR, -speed);
       rotate_motor(REAR_RIGHT_MOTOR, -speed);
       rotate_motor(REAR_LEFT_MOTOR, -speed);
       break;
 
-    case 3: // right
-      rotate_motor(FRONT_RIGHT_MOTOR, speed);
+    case 3:  // right
+      rotate_motor(FRONT_RIGHT_MOTOR, -speed);
       rotate_motor(FRONT_LEFT_MOTOR, speed);
       rotate_motor(REAR_RIGHT_MOTOR, speed);
       rotate_motor(REAR_LEFT_MOTOR, -speed);
       break;
 
-    case 4: // left
+    case 4:  // left
       rotate_motor(FRONT_RIGHT_MOTOR, speed);
       rotate_motor(FRONT_LEFT_MOTOR, -speed);
       rotate_motor(REAR_RIGHT_MOTOR, -speed);
       rotate_motor(REAR_LEFT_MOTOR, speed);
       break;
 
-    case 5: //turn_right
+    case 5:  //turn_right
       rotate_motor(FRONT_RIGHT_MOTOR, -speed);
       rotate_motor(FRONT_LEFT_MOTOR, speed);
       rotate_motor(REAR_RIGHT_MOTOR, -speed);
       rotate_motor(REAR_LEFT_MOTOR, speed);
       break;
 
-    case 6: //turn_left
+    case 6:  //turn_left
       rotate_motor(FRONT_RIGHT_MOTOR, speed);
       rotate_motor(FRONT_LEFT_MOTOR, -speed);
       rotate_motor(REAR_RIGHT_MOTOR, speed);
       rotate_motor(REAR_LEFT_MOTOR, -speed);
       break;
 
-    case 0: //stop
+    case 0:  //stop
     default:
       rotate_motor(FRONT_RIGHT_MOTOR, STOP);
       rotate_motor(FRONT_LEFT_MOTOR, STOP);
@@ -77,25 +95,11 @@ void process_car_movement(int input_value, int speed) {
   }
 }
 
-void rotate_motor(int motor_number, int motor_speed) {
-  if (motor_speed < 0) {
-    digitalWrite(motor_pins_list[motor_number].pin_in1, LOW);
-    digitalWrite(motor_pins_list[motor_number].pin_in2, HIGH);
-  } else if (motor_speed > 0) {
-    digitalWrite(motor_pins_list[motor_number].pin_in1, HIGH);
-    digitalWrite(motor_pins_list[motor_number].pin_in2, LOW);
-  } else {
-    digitalWrite(motor_pins_list[motor_number].pin_in1, LOW);
-    digitalWrite(motor_pins_list[motor_number].pin_in2, LOW);
-  }
-  analogWrite(motor_pins_list[motor_number].pin_en, abs(motor_speed));
-}
-
 void setup_pin_modes() {
   for (int i = 0; i < motor_pins_list.size(); i++) {
     pinMode(motor_pins_list[i].pin_in1, OUTPUT);
     pinMode(motor_pins_list[i].pin_in2, OUTPUT);
-    pinMode(motor_pins_list[i].pin_en, OUTPUT);
+    // pinMode(motor_pins_list[i].pin_en, OUTPUT);
   }
 }
 
@@ -103,9 +107,9 @@ void setup() {
   setup_pin_modes();
   Serial.begin(115200);
   // Replace the "1a:2b:3c:01:01:01" with the MAC address
-  PS4.begin("e8:c8:29:fc:43:d2");  // updated with masry ps4 controller mac address
+  PS4.begin("d0:7e:35:99:3f:7b");  // updated with masry ps4 controller mac address
   // "d0:7e:35:99:3f:7b" masry mac address
-  // "e8:c8:29:fc:43:d2"
+  // "e8:c8:29:fc:43:d2" mina (not working)
   Serial.println("Ready.");
 }
 
@@ -149,11 +153,4 @@ void loop() {
     delay(10);
   }
 }
-// if (PS4.R1()) {
-//   process_car_movement(4);
-//   Serial.println("R1 Button");
-// }
-// if (PS4.L1()) {
-//   process_car_movement(3);
-//   Serial.println("L1 Button");
-// }
+
