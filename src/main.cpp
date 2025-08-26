@@ -1,7 +1,5 @@
 #include <Arduino.h>
-#include <vector>
 #include <PS4Controller.h>
-#include <vector>
 
 #define STOP 0
 #define MAX_SPEED 200
