@@ -54,6 +54,7 @@ void loop() {
   int sensors[5] = {s1, s2, s3, s4, s5};
 
   int sum = 0, count = 0;
+  
   for (int i = 0; i < 5; i++) {
     if (sensors[i] == LOW) {
       sum += weights[i];
