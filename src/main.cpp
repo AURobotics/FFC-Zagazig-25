@@ -24,36 +24,28 @@ struct motor_pins {
 };
 
 constexpr motor_pins motor_pins_list[4] = {
-  { 19, 18 },  // front right
-  { 12, 14 },  // front left
-  { 17, 16 },  // rear right
-  { 27, 26 },  // rear left
+  { 19, 18 }, { 12, 14 }, { 17, 16 }, { 27, 26 }
 };
 
 void on_connected_controller(ControllerPtr ctl) {
-  for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
+  for (int i = 0; i < BP32_MAX_GAMEPADS; i++)
     if (my_controllers[i] == nullptr) {
       Serial.printf("CALLBACK: Controller connected, index=%d\n", i);
       ControllerProperties properties = ctl->getProperties();
-      Serial.printf("Controller model: %s, VID=0x%04x, PID=0x%04x\n",
-                    ctl->getModelName().c_str(),
-                    properties.vendor_id,
-                    properties.product_id);
+      Serial.printf("Controller model: %s, VID=0x%04x, PID=0x%04x\n", ctl->getModelName().c_str(), properties.vendor_id, properties.product_id);
       my_controllers[i] = ctl;
       return;
     }
-  }
   Serial.println("CALLBACK: Controller connected but no empty slot");
 }
 
 void on_disconnected_controller(ControllerPtr ctl) {
-  for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
+  for (int i = 0; i < BP32_MAX_GAMEPADS; i++)
     if (my_controllers[i] == ctl) {
       Serial.printf("CALLBACK: Controller disconnected, index=%d\n", i);
       my_controllers[i] = nullptr;
       return;
     }
-  }
   Serial.println("CALLBACK: Controller disconnected but not found");
 }
 
@@ -73,49 +65,42 @@ void rotate_motor(int motor_number, int motor_speed) {
 
 void process_car_movement(int input_value, int speed) {
   switch (input_value) {
-    case 1:  // forward
+    case 1:
       rotate_motor(FRONT_RIGHT_MOTOR, speed);
       rotate_motor(FRONT_LEFT_MOTOR, speed);
       rotate_motor(REAR_RIGHT_MOTOR, speed);
       rotate_motor(REAR_LEFT_MOTOR, speed);
       break;
-
-    case 2:  // backward
+    case 2:
       rotate_motor(FRONT_RIGHT_MOTOR, -speed);
       rotate_motor(FRONT_LEFT_MOTOR, -speed);
       rotate_motor(REAR_RIGHT_MOTOR, -speed);
       rotate_motor(REAR_LEFT_MOTOR, -speed);
       break;
-
-    case 3:  // right
+    case 3:
       rotate_motor(FRONT_RIGHT_MOTOR, -speed);
       rotate_motor(FRONT_LEFT_MOTOR, speed);
       rotate_motor(REAR_RIGHT_MOTOR, speed);
       rotate_motor(REAR_LEFT_MOTOR, -speed);
       break;
-
-    case 4:  // left
+    case 4:
       rotate_motor(FRONT_RIGHT_MOTOR, speed);
       rotate_motor(FRONT_LEFT_MOTOR, -speed);
       rotate_motor(REAR_RIGHT_MOTOR, -speed);
       rotate_motor(REAR_LEFT_MOTOR, speed);
       break;
-
-    case 5:  // rotate right
+    case 5:
       rotate_motor(FRONT_RIGHT_MOTOR, -speed);
       rotate_motor(FRONT_LEFT_MOTOR, speed);
       rotate_motor(REAR_RIGHT_MOTOR, -speed);
       rotate_motor(REAR_LEFT_MOTOR, speed);
       break;
-
-    case 6:  // rotate left
+    case 6:
       rotate_motor(FRONT_RIGHT_MOTOR, speed);
       rotate_motor(FRONT_LEFT_MOTOR, -speed);
       rotate_motor(REAR_RIGHT_MOTOR, speed);
       rotate_motor(REAR_LEFT_MOTOR, -speed);
       break;
-
-    case 0:  // stop
     default:
       rotate_motor(FRONT_RIGHT_MOTOR, STOP);
       rotate_motor(FRONT_LEFT_MOTOR, STOP);
@@ -137,12 +122,8 @@ void setup_pin_modes() {
 }
 
 ControllerPtr return_first_controller() {
-  for (auto controller : my_controllers) {
-    if (controller && controller->isConnected() && controller->hasData()) {
-      if (controller->isGamepad())
-        return controller;
-    }
-  }
+  for (auto controller : my_controllers)
+    if (controller && controller->isConnected() && controller->hasData() && controller->isGamepad()) return controller;
   return nullptr;
 }
 
@@ -151,43 +132,29 @@ void setup() {
   Serial.begin(115200);
   Serial.printf("Firmware: %s\n", BP32.firmwareVersion());
   const uint8_t *addr = BP32.localBdAddress();
-  Serial.printf("BD Addr: %2X:%2X:%2X:%2X:%2X:%2X\n",
-                addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+  Serial.printf("BD Addr: %2X:%2X:%2X:%2X:%2X:%2X\n", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
   BP32.setup(&on_connected_controller, &on_disconnected_controller);
   BP32.forgetBluetoothKeys();
   BP32.enableVirtualDevice(false);
 }
 
 void loop() {
-  bool controller_updated = BP32.update();
-  if (!controller_updated) return;
-
+  if (!BP32.update()) return;
   ControllerPtr ctl = return_first_controller();
   if (ctl == nullptr) return;
 
-  int right_stick = ctl->axisRX();
-  int left_stick = ctl->axisX();
-  int r2 = ctl->throttle();
-  int l2 = ctl->brake();
+  int right_stick = ctl->axisRX(), left_stick = ctl->axisX(), r2 = ctl->throttle(), l2 = ctl->brake();
   static int servo_angle = SERVO_CENTER;
 
-  if (r2 > 0) {
-    int speed_forward = map(r2, 0, 1020, 0, MAX_SPEED);
-    process_car_movement(1, speed_forward);
-  } else if (l2 > 0) {
-    int speed_backward = map(l2, 0, 1020, 0, MAX_SPEED);
-    process_car_movement(2, speed_backward);
-  } else if (abs(left_stick) > 5) {
-    int speed_horizontal = map(left_stick, -508, 512, -MAX_SPEED, MAX_SPEED);
-    if (speed_horizontal > 0) process_car_movement(3, speed_horizontal);
-    else process_car_movement(4, -speed_horizontal);
+  if (r2 > 0) process_car_movement(1, map(r2, 0, 1020, 0, MAX_SPEED));
+  else if (l2 > 0) process_car_movement(2, map(l2, 0, 1020, 0, MAX_SPEED));
+  else if (abs(left_stick) > 5) {
+    int s = map(left_stick, -508, 512, -MAX_SPEED, MAX_SPEED);
+    process_car_movement((s > 0) ? 3 : 4, abs(s));
   } else if (abs(right_stick) > 5) {
-    int speed_rotate = map(right_stick, -508, 512, -MAX_SPEED, MAX_SPEED);
-    if (speed_rotate > 0) process_car_movement(5, speed_rotate);
-    else process_car_movement(6, -speed_rotate);
-  } else {
-    process_car_movement(0, 0);
-  }
+    int s = map(right_stick, -508, 512, -MAX_SPEED, MAX_SPEED);
+    process_car_movement((s > 0) ? 5 : 6, abs(s));
+  } else process_car_movement(0, 0);
 
   if (ctl->r1()) {
     servo_angle += 2;
@@ -207,13 +174,10 @@ void loop() {
       pump_state = true;
       Serial.println("Pump ON");
     }
-  } else {
-    if (pump_state) {
-      digitalWrite(PUMP, LOW);
-      pump_state = false;
-      Serial.println("Pump OFF");
-    }
+  } else if (pump_state) {
+    digitalWrite(PUMP, LOW);
+    pump_state = false;
+    Serial.println("Pump OFF");
   }
-
   delay(10);
 }
